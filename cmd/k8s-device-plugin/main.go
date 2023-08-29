@@ -214,11 +214,13 @@ func (p *Plugin) Allocate(ctx context.Context, r *pluginapi.AllocateRequest) (*p
 
 		// Currently, there are only 1 /dev/kfd per nodes regardless of the # of GPU available
 		// for compute/rocm/HSA use cases
-		dev = new(pluginapi.DeviceSpec)
-		dev.HostPath = "/dev/kfd"
-		dev.ContainerPath = "/dev/kfd"
-		dev.Permissions = "rw"
-		car.Devices = append(car.Devices, dev)
+		if _, err := os.Stat("/sys/class/kfd"); err == nil {
+			dev = new(pluginapi.DeviceSpec)
+			dev.HostPath = "/dev/kfd"
+			dev.ContainerPath = "/dev/kfd"
+			dev.Permissions = "rw"
+			car.Devices = append(car.Devices, dev)
+		}
 
 		for _, id := range req.DevicesIDs {
 			glog.Infof("Allocating device ID: %s", id)
@@ -323,7 +325,7 @@ func main() {
 
 	go func() {
 		// /sys/class/kfd only exists if ROCm kernel/driver is installed
-		var path = "/sys/class/kfd"
+		var path = "/sys/class/drm"
 		if _, err := os.Stat(path); err == nil {
 			l.ResUpdateChan <- []string{"gpu"}
 		}
